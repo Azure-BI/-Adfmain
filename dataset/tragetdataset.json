@@ -1,0 +1,39 @@
+{
+	"name": "tragetdataset",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "EID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "EName",
+				"type": "varchar"
+			},
+			{
+				"name": "ESalary",
+				"type": "varchar"
+			},
+			{
+				"name": "EAddress",
+				"type": "varchar"
+			},
+			{
+				"name": "Insetdate",
+				"type": "date"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "tragetdata"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

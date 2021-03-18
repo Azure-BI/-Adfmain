@@ -1,0 +1,61 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "BLOBDatasetsource",
+						"type": "DatasetReference"
+					},
+					"name": "sourceBLOB"
+				},
+				{
+					"dataset": {
+						"referenceName": "tragetdataset",
+						"type": "DatasetReference"
+					},
+					"name": "DesRef"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "tragetdataset",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "tragetdataset",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "RefIDSelect"
+				},
+				{
+					"name": "Lookup1"
+				},
+				{
+					"name": "ConditionalSplit1"
+				},
+				{
+					"name": "DerivedColumn1"
+				},
+				{
+					"name": "DerivedColumn2"
+				},
+				{
+					"name": "AlterRow1"
+				}
+			],
+			"script": "source(output(\n\t\tEID as integer,\n\t\tEName as string,\n\t\tEsalary as string,\n\t\tEAddres as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false) ~> sourceBLOB\nsource(output(\n\t\tEID as integer,\n\t\tEName as string,\n\t\tESalary as string,\n\t\tEAddress as string,\n\t\tInsetdate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DesRef\nDesRef select(mapColumn(\n\t\tEID\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> RefIDSelect\nsourceBLOB, RefIDSelect lookup(sourceBLOB@EID == RefIDSelect@EID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 split(isMatch(),\n\tdisjoint: false) ~> ConditionalSplit1@(Match, NoMatch)\nConditionalSplit1@NoMatch derive(InsertDate = currentDate()) ~> DerivedColumn1\nConditionalSplit1@Match derive(UpdateDate = currentDate()) ~> DerivedColumn2\nDerivedColumn2 alterRow(upsertIf(true())) ~> AlterRow1\nDerivedColumn1 sink(input(\n\t\tEID as integer,\n\t\tEName as string,\n\t\tESalary as string,\n\t\tEAddress as string,\n\t\tInsetdate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tEID = ConditionalSplit1@NoMatch@EID,\n\t\tEName,\n\t\tESalary = Esalary,\n\t\tEAddress = EAddres,\n\t\tInsetdate = InsertDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\terrorHandlingOption: 'stopOnFirstError') ~> sink1\nAlterRow1 sink(input(\n\t\tEID as integer,\n\t\tEName as string,\n\t\tESalary as string,\n\t\tEAddress as string,\n\t\tInsetdate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['EID'],\n\tformat: 'table',\n\tmapColumn(\n\t\tEID = ConditionalSplit1@Match@EID,\n\t\tEName,\n\t\tESalary = Esalary,\n\t\tEAddress = EAddres,\n\t\tInsetdate = UpdateDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\terrorHandlingOption: 'stopOnFirstError') ~> sink2"
+		}
+	}
+}
